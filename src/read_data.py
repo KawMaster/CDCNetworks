@@ -1,13 +1,10 @@
 # Libraries
 
 #%% Load Libraries and set up script
-import numpy as np
 import pandas as pd
 import scipy.io as sio
 import glob
 import os
-from tqdm import tqdm, trange
-import timeit
 
 os.chdir('..')
 
@@ -26,8 +23,3 @@ for m,f in zip(mat, filenames):
     df = pd.DataFrame(m)
     dir_name = './data/processed/' + fn + '.csv'
     df.to_csv(dir_name, index = False)
-# %%
-
-# %%
-
-# %%
