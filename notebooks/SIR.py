@@ -187,9 +187,15 @@ def hist_plots(data, network_name):
     ax = sns.boxplot(x = 'rho', y = 'recovered', data=data, hue = 'k', dodge = False)
 
     labels = dict()
+
+    # labels['xlabel'] = r'$\rho_0$'
+    # labels['ylabel'] = r'Recovered Nodes'
+    # labels['title'] = 'Distribution of Recovered Nodes: {} Network'.format(network_name)
+
+
     labels['xlabel'] = r'$\rho_0$'
-    labels['ylabel'] = r'Recovered Nodes'
-    labels['title'] = 'Distribution of Recovered Nodes: {} Network'.format(network_name)
+    labels['ylabel'] = r'Recovered Nodes Fraction $n_r$'
+    labels['title'] = r'Distribution of the Recovered Nodes Fraction $n_r$: {} Network'.format(network_name)
 
     ax.set(**labels)
 
@@ -209,7 +215,7 @@ def hist_plots(data, network_name):
     return ax.get_figure()
 
 
-# %%
+# %% 5.2.4
 for nk in NETWORK_KEYS:
     if 'pres_' not in nk:
         recovered = R[nk]
@@ -232,5 +238,33 @@ for nk in NETWORK_KEYS:
         fig = hist_plots(data, nk)
         fig.savefig('../figs/recovered_nodes/' + nk + '_deg_dist' + '.png')
 
+
+# %% 5.2.5
+
+for nk in NETWORK_KEYS:
+    if 'pres_' not in nk:
+        A = NETWORKS[nk]
+        num_nodes = A.number_of_nodes()
+
+        recovered = R[nk]
+        rho = Ρ[nk]
+
+        data = {}
+        data['recovered'] = []
+        data['rho'] = []
+        data['k'] = []
+        for k in range(1, 6):
+            reck = recovered[k]
+            reck_frac = [r / num_nodes for r in reck] 
+            reck_20 = [r for r in reck_frac if r > 0.2] # this is the nr value 
+            rhok = rho[k]
+
+            data['recovered'].extend(reck_20)
+            data['rho'].extend([rhok for _ in reck_20])
+            data['k'].extend([k for _ in reck_20])
+
+        df = pd.DataFrame(data)
+        fig = hist_plots(data, nk)
+        fig.savefig('../figs/recovered_nodes/' + nk + '_nr' + '.png')
 
 # %%
