@@ -158,11 +158,11 @@ for nk in NETWORK_KEYS:
             # 100 trials per μ
             for t in range(100):
 
-                
                 # Select a random node
                 v = random.sample(A.nodes(), 1)[0]
                 V = [n for n in A.nodes() if n != v]
-                logging.debug('Network: {} \t k: {} \t mu: {} \t v: {}'.format(nk, k, mu, v))
+                logging.debug(
+                    'Network: {} \t k: {} \t mu: {} \t v: {}'.format(nk, k, mu, v))
 
                 logging.debug('Simulation #{}'.format(t))
                 r, s = SIR(A, β, μ, Δt, T, v, V)
@@ -182,9 +182,10 @@ def hist_plots(data, network_name):
     sns.set(rc={'figure.dpi': 500})
     sns.set_style("white")
 
-
-
-    ax = sns.boxplot(x = 'rho', y = 'recovered', data=data, hue = 'k', dodge = False)
+    meanprops = {'marker': 'o', 'markerfacecolor': 'white',
+                 'markeredgecolor': 'black', 'markersize': '5'}
+    ax = sns.boxplot(x='rho', y='recovered', data=data, hue='k', dodge=False,
+                     showmeans=True, meanprops=meanprops, boxprops=dict(alpha=.3))
 
     labels = dict()
 
@@ -192,25 +193,42 @@ def hist_plots(data, network_name):
     # labels['ylabel'] = r'Recovered Nodes'
     # labels['title'] = 'Distribution of Recovered Nodes: {} Network'.format(network_name)
 
+    # labels['xlabel'] = r'$\rho_0$'
+    # labels['ylabel'] = r'Recovered Nodes Fraction $n_r$'
+    # labels['title'] = r'Distribution of the Recovered Nodes Fraction $n_r$: {} Network'.format(
+    #     network_name)
 
     labels['xlabel'] = r'$\rho_0$'
-    labels['ylabel'] = r'Recovered Nodes Fraction $n_r$'
-    labels['title'] = r'Distribution of the Recovered Nodes Fraction $n_r$: {} Network'.format(network_name)
+    labels['ylabel'] = r'Recovered Nodes'
+    labels['title'] = 'Distribution of Recovered Nodes with Averages: {} Network'.format(
+        network_name)
 
     ax.set(**labels)
+
+    # Ticks
 
     ticks = ax.get_xticklabels()
     ticks = [ρ.get_text() for ρ in ticks]
     ticks = [round(float(ρ), 4) for ρ in ticks]
-
-
     ax.set_xticklabels(ticks)
+
+    # Labeling Means
+
+    means = [round(m, 4) for m in data.groupby(
+        ['rho'])['recovered'].mean().to_list()]
+    print(type(means))
+
+    vertical_offset = data['recovered'].mean() * -0.05
+
+    for xtick in ax.get_xticks():
+        ax.text(xtick, means[xtick] + vertical_offset, r'$\bar{{n}}_r = {0}$'.format(means[xtick]),
+                horizontalalignment='center', size='x-small', color='black', weight='semibold', bbox=dict(facecolor='#FFFFFF', alpha = 1))
+
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles=handles, labels=labels, title='k')
     ax.legend(loc='upper left')
     ax.get_legend().set_title("k")
     plt.show()
-
 
     return ax.get_figure()
 
@@ -220,7 +238,6 @@ for nk in NETWORK_KEYS:
     if 'pres_' not in nk:
         recovered = R[nk]
         rho = Ρ[nk]
-
 
         data = {}
         data['recovered'] = []
@@ -235,7 +252,7 @@ for nk in NETWORK_KEYS:
             data['k'].extend([k for _ in reck])
 
         df = pd.DataFrame(data)
-        fig = hist_plots(data, nk)
+        fig = hist_plots(df, nk)
         fig.savefig('../figs/recovered_nodes/' + nk + '_deg_dist' + '.png')
 
 
@@ -255,8 +272,8 @@ for nk in NETWORK_KEYS:
         data['k'] = []
         for k in range(1, 6):
             reck = recovered[k]
-            reck_frac = [r / num_nodes for r in reck] 
-            reck_20 = [r for r in reck_frac if r > 0.2] # this is the nr value 
+            reck_frac = [r / num_nodes for r in reck]
+            reck_20 = [r for r in reck_frac if r > 0.2]  # this is the nr value
             rhok = rho[k]
 
             data['recovered'].extend(reck_20)
@@ -264,7 +281,34 @@ for nk in NETWORK_KEYS:
             data['k'].extend([k for _ in reck_20])
 
         df = pd.DataFrame(data)
-        fig = hist_plots(data, nk)
+        fig = hist_plots(df, nk)
         fig.savefig('../figs/recovered_nodes/' + nk + '_nr' + '.png')
+
+# %% 5.2.6
+
+for nk in NETWORK_KEYS:
+    if 'pres_' not in nk:
+        A = NETWORKS[nk]
+        num_nodes = A.number_of_nodes()
+
+        recovered = R[nk]
+        rho = Ρ[nk]
+
+        data = {}
+        data['recovered'] = []
+        data['rho'] = []
+        data['k'] = []
+        for k in range(1, 6):
+            reck = recovered[k]
+            reck_20 = [r for r in reck if r > 0.2*num_nodes]
+            rhok = rho[k]
+
+            data['recovered'].extend(reck_20)
+            data['rho'].extend([rhok for _ in reck_20])
+            data['k'].extend([k for _ in reck_20])
+
+        df = pd.DataFrame(data)
+        fig = hist_plots(df, nk)
+        fig.savefig('../figs/recovered_nodes/' + nk + '_avg_nr' + '.png')
 
 # %%
