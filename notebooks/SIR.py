@@ -184,8 +184,8 @@ def hist_plots(data, network_name):
 
     meanprops = {'marker': 'o', 'markerfacecolor': 'white',
                  'markeredgecolor': 'black', 'markersize': '5'}
-    ax = sns.boxplot(x='rho', y='recovered', data=data, hue='k', dodge=False,
-                     showmeans=True, meanprops=meanprops, boxprops=dict(alpha=.3))
+    # ax = sns.boxplot(x='rho', y='recovered', data=data, hue='k', dodge=False,
+    #                  showmeans=True, meanprops=meanprops, boxprops=dict(alpha=.3))
 
     labels = dict()
 
@@ -202,6 +202,9 @@ def hist_plots(data, network_name):
     labels['ylabel'] = r'Recovered Nodes'
     labels['title'] = 'Distribution of Recovered Nodes with Averages: {} Network'.format(
         network_name)
+
+    ax = sns.boxplot(x='rho', y='recovered', data=data, dodge=False,
+                     showmeans=True, meanprops=meanprops, boxprops=dict(alpha=.3))
 
     ax.set(**labels)
 
@@ -311,4 +314,85 @@ for nk in NETWORK_KEYS:
         fig = hist_plots(df, nk)
         fig.savefig('../figs/recovered_nodes/' + nk + '_avg_nr' + '.png')
 
+# %% 5.3.7
+
+
+
+# Run the simulation on the Contact Networks
+R_vac = dict()
+S_vac= dict()
+Ρ_vac = dict()
+
+# Loop over the contact networks
+for nk in NETWORK_KEYS:
+
+    if 'pres_' not in nk:
+
+        A = NETWORKS[nk]
+        β = 4e-4
+        k = [1, 2, 3, 4, 5]
+        Δt = 1e-2 * (1 / β)
+        T = 1000
+        degrees = [A.degree(n) for n in A.nodes()]
+        d = sum(degrees) / len(degrees)
+        ρ = None
+
+        R_vac[nk] = []
+        S_vac[nk] = []
+        Ρ_vac[nk] = []
+
+        μ = 100 * β
+        mu = μ
+
+        # 10 trials
+        for t in range(10):
+
+            # Vaccinated Nodes
+            vaccinated_nodes = sorted(A.degree, key=lambda x: x[1], reverse=True)[:20]
+            vac_nodes, _ =  zip(*vaccinated_nodes)
+            V2 = [v for v in A.nodes() if v not in vac_nodes]
+            
+            # Select a random node
+            v = random.sample(V2, 1)[0]
+            V3 = [n for n in V2 if n != v]
+
+            # logging.debug('Network: {} \t k: {} \t mu: {} \t v: {}'.format(nk, k, mu, v))
+
+            # logging.debug('Simulation #{}'.format(t))
+
+            r, s = SIR(A, β, μ, Δt, T, v, V3)
+            R_vac[nk].append(r)
+            S_vac[nk].append(s)
+
+        ρ = (β / μ) * d  # ρ₀
+        Ρ_vac[nk] = ρ
+# %% 5.3.6 and 5.3.7
+# There are no instances during our simulations where at minimum 20% of the nodes were infected
+# under the Vaccination Simulation. Therefore there is nothing to plot...
+# Is this an error? I have no idea, but it's interesting nonetheless
+
+for nk in NETWORK_KEYS:
+    if 'pres_' not in nk:
+        A = NETWORKS[nk]
+        num_nodes = A.number_of_nodes()
+
+        recovered = R_vac[nk]
+        rho = Ρ_vac[nk]
+
+        data = {}
+        data['recovered'] = []
+        data['rho'] = []
+
+        reck = recovered
+        reck_20 = [r for r in reck if r > 0.2*num_nodes]
+
+        rhok = rho
+
+        data['recovered'].append(reck_20)
+        data['rho'].append(rho)
+        df = pd.DataFrame(data)
+        # fig = hist_plots(df, nk)
+
+
+        # fig.savefig('../figs/recovered_nodes/' + nk + '_avg_nr' + '.png')
 # %%
