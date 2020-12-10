@@ -65,7 +65,7 @@ def SIR(A, β, μ, Δt, T, v, V):
         V: List of Susceptible Nodes
     '''
     A_np = nx.to_numpy_array(A)
-    print(β)
+    # print(β)
 
     # Calculated Parameters
     n_time_steps = int(T / Δt)
@@ -90,7 +90,7 @@ def SIR(A, β, μ, Δt, T, v, V):
             for u in neighbors:
                 if u in susceptibleNodes:
                     p = β * A_np[u, v] * Δt
-                    print(p)
+                    # print(p)
                     if np.random.uniform() < p:
                         logging.debug('----- Node {} Infected -----'.format(u))
 
@@ -137,10 +137,8 @@ for nk in NETWORK_KEYS:
         A = NETWORKS[nk]
         β = 4e-4
         k = [1, 2, 3, 4, 5]
-        Δt = 1e-3 * (1 / β)
+        Δt = 1e-2 * (1 / β)
         T = 1000
-        v = random.sample(A.nodes(), 1)[0]
-        V = [n for n in A.nodes() if n != v]
         degrees = [A.degree(n) for n in A.nodes()]
         d = sum(degrees) / len(degrees)
         ρ = None
@@ -157,9 +155,15 @@ for nk in NETWORK_KEYS:
             μ = 100 * (β / kv)
             mu = μ
 
-            logging.debug('Network: {} \t k: {} \t mu: {} \t v: {}'.format(nk, k, mu, v))
             # 100 trials per μ
             for t in range(100):
+
+                
+                # Select a random node
+                v = random.sample(A.nodes(), 1)[0]
+                V = [n for n in A.nodes() if n != v]
+                logging.debug('Network: {} \t k: {} \t mu: {} \t v: {}'.format(nk, k, mu, v))
+
                 logging.debug('Simulation #{}'.format(t))
                 r, s = SIR(A, β, μ, Δt, T, v, V)
                 R[nk][kv].append(r)
@@ -171,25 +175,38 @@ for nk in NETWORK_KEYS:
 
 # %%
 
-def hist_plots(data, bins, network_name):
+def hist_plots(data, network_name):
 
     # Global Plotting Settings (re-executing them just in case)
     sns.set(rc={'figure.figsize': (10, 6)})
     sns.set(rc={'figure.dpi': 500})
     sns.set_style("white")
 
-    ax = sns.displot(data=data, bins=bins, stat='probability')
 
-    labels = {}
 
-    labels['xlabel'] = r'Recovered Nodes'
-    labels['ylabel'] = r'Probability'
-    labels['title'] = 'Distribution of Recovered Nodes: {} Network'.format(
-        network_name)
+    ax = sns.boxplot(x = 'rho', y = 'recovered', data=data, hue = 'k', dodge = False)
+
+    labels = dict()
+    labels['xlabel'] = r'$\rho_0$'
+    labels['ylabel'] = r'Recovered Nodes'
+    labels['title'] = 'Distribution of Recovered Nodes: {} Network'.format(network_name)
 
     ax.set(**labels)
+
+    ticks = ax.get_xticklabels()
+    ticks = [ρ.get_text() for ρ in ticks]
+    ticks = [round(float(ρ), 4) for ρ in ticks]
+
+
+    ax.set_xticklabels(ticks)
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=handles, labels=labels, title='k')
+    ax.legend(loc='upper left')
+    ax.get_legend().set_title("k")
     plt.show()
-    return ax
+
+
+    return ax.get_figure()
 
 
 # %%
@@ -198,8 +215,22 @@ for nk in NETWORK_KEYS:
         recovered = R[nk]
         rho = Ρ[nk]
 
+
+        data = {}
+        data['recovered'] = []
+        data['rho'] = []
+        data['k'] = []
         for k in range(1, 6):
-            fig = hist_plots(recovered[k], 30, nk + '_k=' + str(k))
+            reck = recovered[k]
+            rhok = rho[k]
+
+            data['recovered'].extend(reck)
+            data['rho'].extend([rhok for _ in reck])
+            data['k'].extend([k for _ in reck])
+
+        df = pd.DataFrame(data)
+        fig = hist_plots(data, nk)
+        fig.savefig('../figs/recovered_nodes/' + nk + '_deg_dist' + '.png')
 
 
 # %%
